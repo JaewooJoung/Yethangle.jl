@@ -83,7 +83,7 @@ end
 #= 
 구성 문자에 대한 비트맵을 생성합니다.
 =#
-function render_component!(bitmap::Matrix{UInt8}, char::Char, position::(Int, Int))
+function render_component!(bitmap::Matrix{UInt8}, char::Char, position::Tuple{Int, Int})  # Fixed type annotation here
     x, y = position
     # 구성 요소에 대한 기본 비트맵 생성
     # 실제 글리프 렌더링 로직으로 대체될 부분
