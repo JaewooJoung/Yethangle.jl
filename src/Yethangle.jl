@@ -174,7 +174,7 @@ function load_font(directory::String)::YethangleFont
         end
     end
     
-    font
+     return font
 end
 
 include("font_utils.jl")  # 추가 유틸리티
