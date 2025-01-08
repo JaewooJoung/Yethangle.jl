@@ -1,9 +1,30 @@
-# examples/generate.jl
-
-using Yethangle
-
-# 기본 이름을 사용할 수 있습니다.
-generate_and_install()
-
-# 또는 사용자 지정 이름을 지정할 수 있습니다.
-# generate_and_install("내옛한글체")
+function generate_and_install(font_name::String="옛한글")
+    # ... (previous code remains the same)
+    
+    # Save raw font data
+    output_dir = "output/yethangle"
+    println("Saving font data to $output_dir")
+    save_font(font, output_dir)
+    
+    # Convert to TTF
+    ttf_file = "output/yethangle.ttf"
+    println("Converting to TTF format...")
+    success = convert_to_ttf(font, ttf_file)
+    
+    if success
+        # Clean up .bin files
+        println("Cleaning up temporary files...")
+        for file in readdir(output_dir)
+            if endswith(file, ".bin")
+                rm(joinpath(output_dir, file))
+            end
+        end
+        
+        # Install font
+        println("Installing font...")
+        install_font(ttf_file)
+        println("Yethangle font successfully generated and installed!")
+    else
+        println("TTF conversion failed. Temporary files kept for debugging.")
+    end
+end
