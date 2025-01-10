@@ -6,20 +6,17 @@ using FileIO
 using JSON3
 using Unicode
 
-export create_font, generate_all_combinations, save_font, load_font, generate_and_install
+export create_font, generate_all_combinations, save_font, load_font, generate_ttf
 
-# 문자 집합에 대한 상수 정의
+# Keep existing character set constants
 const INITIAL_CONSONANTS = [
     'ᄀ', 'ᄁ', 'ᄂ', 'ᄃ', 'ᄄ', 'ᄅ', 'ᄆ', 'ᄇ', 'ᄈ', 'ᄉ', 'ᄊ', 'ᄋ',
     'ᄌ', 'ᄍ', 'ᄎ', 'ᄏ', 'ᄐ', 'ᄑ', 'ᄒ', 'ㆁ', 'ㆆ', 'ㅿ'
 ]
 
 const VOWELS = [
-    # 기본 모음
     'ㅏ', 'ㅑ', 'ㅓ', 'ㅕ', 'ㅗ', 'ㅛ', 'ㅜ', 'ㅠ', 'ㅡ', 'ㅣ',
-    # 복합 모음
     'ㅐ', 'ㅒ', 'ㅔ', 'ㅖ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅢ',
-    # 멸종된 모음
     'ㆍ', 'ᆢ'
 ]
 
@@ -28,7 +25,7 @@ const FINAL_CONSONANTS = [
     'ᆵ', 'ᆶ', 'ᆷ', 'ᆸ', 'ᆹ', 'ᆺ', 'ᆻ', 'ᆼ', 'ᆽ', 'ᆾ', 'ᆿ', 'ᇀ', 'ᇁ', 'ᇂ'
 ]
 
-# 기본 구조체 정의
+# Keep existing structs
 struct GlyphMetrics
     width::Int
     height::Int
@@ -55,9 +52,7 @@ mutable struct YethangleFont
     metrics::Dict{Char, GlyphMetrics}
 end
 
-#= 
-새로운 옛한글 글꼴 인스턴스를 생성합니다.
-=#
+# Keep core font creation functions
 function create_font(name::String="옛한글")::YethangleFont
     metadata = FontMetadata(
         name,
@@ -68,40 +63,24 @@ function create_font(name::String="옛한글")::YethangleFont
     YethangleFont(metadata, Dict(), Dict())
 end
 
-#= 
-음절 조합에 대한 유니코드 코드 포인트를 계산합니다.
-=#
 function calculate_unicode_point(initial::Char, vowel::Char, final::Union{Char, Nothing})::Int
     initial_index = findfirst(==(initial), INITIAL_CONSONANTS) - 1
     vowel_index = findfirst(==(vowel), VOWELS) - 1
     final_index = final === nothing ? 0 : findfirst(==(final), FINAL_CONSONANTS)
     
-    # E000부터 시작하는 Private Use Area 사용
     return 0xE000 + (initial_index * 23 * 28) + (vowel_index * 28) + (final_index === nothing ? 0 : final_index)
 end
 
-#= 
-구성 문자에 대한 비트맵을 생성합니다.
-=#
-function render_component!(bitmap::Matrix{UInt8}, char::Char, position::Tuple{Int, Int})  # Fixed type annotation here
+function render_component!(bitmap::Matrix{UInt8}, char::Char, position::Tuple{Int, Int})
     x, y = position
-    # 구성 요소에 대한 기본 비트맵 생성
-    # 실제 글리프 렌더링 로직으로 대체될 부분
     char_bitmap = zeros(UInt8, 100, 100)
-    # ... 렌더링 로직 ...
-    
-    # 구성 요소 비트맵을 메인 비트맵에 배치
     bitmap[y:y+99, x:x+99] .= char_bitmap
 end
 
-#= 
-음절 조합에 대한 글리프를 생성합니다.
-=#
 function create_syllable_glyph(initial::Char, vowel::Char, final::Union{Char, Nothing})::Glyph
     metrics = GlyphMetrics(1000, 1000, 0, 0, 1000)
     bitmap = zeros(UInt8, 1000, 1000)
     
-    # 구성 요소 렌더링
     render_component!(bitmap, initial, (100, 800))
     render_component!(bitmap, vowel, (400, 500))
     if final !== nothing
@@ -111,17 +90,11 @@ function create_syllable_glyph(initial::Char, vowel::Char, final::Union{Char, No
     Glyph(metrics, bitmap)
 end
 
-#= 
-모든 가능한 음절 조합을 생성합니다.
-=#
 function generate_all_combinations(font::YethangleFont)
     combinations = []
     for initial in INITIAL_CONSONANTS
         for vowel in VOWELS
-            # 종성 없이
             push!(combinations, (initial, vowel, nothing))
-            
-            # 종성과 함께
             for final in FINAL_CONSONANTS
                 push!(combinations, (initial, vowel, final))
             end
@@ -130,53 +103,60 @@ function generate_all_combinations(font::YethangleFont)
     combinations
 end
 
-#= 
-글꼴을 파일로 저장합니다.
-=#
-function save_font(font::YethangleFont, directory::String)
-    mkpath(directory)
+# Modified TTF generation function
+function generate_ttf(font::YethangleFont, output_file::String)
+    println("TTF 생성 시작...")
     
-    # 메타데이터 저장
-    open(joinpath(directory, "metadata.json"), "w") do io
-        JSON3.write(io, font.metadata)
-    end
+    # Create TTF structure
+    ttf = TTFont()
     
-    # 글리프 저장
-    for (char, glyph) in font.glyphs
-        write(joinpath(directory, "$(Int(char)).bin"), glyph.bitmap)
-    end
+    # Add metadata
+    add_metadata!(ttf, font.metadata)
     
-    # 메트릭 저장
-    open(joinpath(directory, "metrics.json"), "w") do io
-        JSON3.write(io, font.metrics)
-    end
-end
-
-#= 
-파일에서 글꼴을 로드합니다.
-=#
-function load_font(directory::String)::YethangleFont
-    metadata = JSON3.read(read(joinpath(directory, "metadata.json")), FontMetadata)
-    font = YethangleFont(metadata, Dict(), Dict())
-    
-    # 메트릭 로드
-    font.metrics = JSON3.read(read(joinpath(directory, "metrics.json")), 
-                            Dict{Char, GlyphMetrics})
-    
-    # 글리프 로드
-    for file in readdir(directory)
-        if endswith(file, ".bin")
-            char_code = parse(Int, splitext(file)[1])
-            char = Char(char_code)
-            bitmap = read(joinpath(directory, file))
-            font.glyphs[char] = Glyph(font.metrics[char], 
-                                    reshape(bitmap, 1000, 1000))
+    # Add glyphs
+    total_glyphs = length(font.glyphs)
+    for (i, (char, glyph)) in enumerate(font.glyphs)
+        if i % 1000 == 0
+            println("글리프 처리 중: $i / $total_glyphs ($(round(i/total_glyphs*100, digits=2))%)")
         end
+        add_glyph!(ttf, char, glyph)
     end
     
-     return font
+    # Save TTF file
+    println("TTF 파일 저장 중...")
+    mkpath(dirname(output_file))
+    save_ttf(ttf, output_file)
+    
+    println("TTF 파일이 성공적으로 생성되었습니다: $output_file")
 end
 
-include("font_utils.jl")  # 추가 유틸리티
+# Simplified main generation function
+function generate_font(font_name::String="옛한글", output_file::String="output/yethangle.ttf")
+    # Create font
+    font = create_font(font_name)
+    
+    # Generate combinations
+    println("조합 생성 중...")
+    combinations = generate_all_combinations(font)
+    total = length(combinations)
+    println("생성할 총 조합 수: $total")
+    
+    # Generate glyphs
+    for (i, (initial, vowel, final)) in enumerate(combinations)
+        if i % 1000 == 0
+            println("처리 중: $i / $total ($(round(i/total*100, digits=2))%)")
+        end
+        
+        glyph = create_syllable_glyph(initial, vowel, final)
+        unicode_point = calculate_unicode_point(initial, vowel, final)
+        font.glyphs[Char(unicode_point)] = glyph
+    end
+    
+    # Generate TTF
+    generate_ttf(font, output_file)
+end
+
+# Include font_utils.jl but remove installation-related functions
+include("font_utils.jl")
 
 end # module
