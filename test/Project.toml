@@ -1,0 +1,20 @@
+name = "Yethangle"
+uuid = "9061a2c2-19ed-4031-ac61-7eb88e694d70"
+authors = ["Jaewoo Joung<jaewoo.joung@outlook.com>"]
+version = "0.1.0"
+
+[deps]
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
+FreeType = "b38be410-82b0-50bf-ab77-7b57e271db43"
+JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
+ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+FileIO = "1"
+FreeType = "4"
+JSON3 = "1"
+ProgressMeter = "1"
+Test = "1.11.0"
+julia = "1.6"
