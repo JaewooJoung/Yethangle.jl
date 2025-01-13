@@ -8,15 +8,9 @@ using ProgressMeter
 using UUIDs
 
 # Include other files
-include("types.jl")
-include("font_utils.jl")
-include("glyph_utils.jl")
-
-export FontMetadata, GlyphMetrics, GlyphOutline, Glyph, TTFont, YethangleFont
-export create_font, generate_all_combinations, save_font, load_font, generate_ttf, generate_font
-export add_metadata!, add_glyph!, save_ttf
-
-end # module
+include("types.jl")        # Defines FontMetadata, GlyphMetrics, GlyphOutline, Glyph, TTFont, YethangleFont, etc.
+include("font_utils.jl")   # Defines font-related utility functions
+include("glyph_utils.jl")  # Defines glyph-related utility functions
 
 # Character set constants
 const INITIAL_CONSONANTS = [
@@ -36,7 +30,8 @@ const FINAL_CONSONANTS = [
 ]
 
 #=
-Calculate Unicode code point for a given Hangul syllable combination
+Calculate Unicode code point for a given Hangul syllable combination.
+The result is a code point in the Private Use Area (PUA) range (0xE000 to 0xF8FF).
 =#
 function calculate_unicode_point(initial::Char, vowel::Char, final::Union{Char, Nothing})::Int
     initial_index = findfirst(==(initial), INITIAL_CONSONANTS)
@@ -46,28 +41,29 @@ function calculate_unicode_point(initial::Char, vowel::Char, final::Union{Char, 
         throw(ArgumentError("Invalid initial consonant or vowel"))
     end
     
+    final_idx = 0
     if final !== nothing
         final_index = findfirst(==(final), FINAL_CONSONANTS)
         if final_index === nothing
             throw(ArgumentError("Invalid final consonant"))
         end
+        final_idx = final_index - 1
     end
     
     initial_idx = initial_index - 1
     vowel_idx = vowel_index - 1
-    final_idx = final === nothing ? 0 : findfirst(==(final), FINAL_CONSONANTS)
     
-    # Validate calculation won't overflow
+    # Validate calculation won't overflow the PUA range
     max_point = 0xE000 + (length(INITIAL_CONSONANTS) * length(VOWELS) * length(FINAL_CONSONANTS))
     if max_point > 0xF8FF  # End of Private Use Area
         throw(ErrorException("Unicode point calculation would exceed Private Use Area"))
     end
     
-    return 0xE000 + (initial_idx * 23 * 28) + (vowel_idx * 28) + (final_idx === nothing ? 0 : final_idx)
+    return 0xE000 + (initial_idx * length(VOWELS) * length(FINAL_CONSONANTS)) + (vowel_idx * length(FINAL_CONSONANTS)) + final_idx
 end
 
 #= 
-Generate all possible Hangul syllable combinations
+Generate all possible Hangul syllable combinations.
 =#
 function generate_all_combinations(font::YethangleFont)
     combinations = Tuple{Char, Char, Union{Char, Nothing}}[]
@@ -85,7 +81,7 @@ function generate_all_combinations(font::YethangleFont)
 end
 
 #= 
-Create a new font with the given name
+Create a new font with the given name.
 =#
 function create_font(name::String="옛한글")::YethangleFont
     metadata = FontMetadata(
@@ -106,7 +102,7 @@ function create_font(name::String="옛한글")::YethangleFont
 end
 
 #= 
-Generate font file with all syllable combinations
+Generate font file with all syllable combinations.
 =#
 function generate_font(font_name::String="옛한글", output_file::String="output/yethangle.ttf")
     try
@@ -123,10 +119,11 @@ function generate_font(font_name::String="옛한글", output_file::String="outpu
         end
         
         # Process combinations with progress tracking
+        update_interval = max(1, total ÷ 100)  # Update every 1% of the total
         progress = Progress(total, 1, "글리프 생성 중...")
         for (i, (initial, vowel, final)) in enumerate(combinations)
             try
-                if i % 1000 == 0
+                if i % update_interval == 0
                     update!(progress, i)
                 end
                 
@@ -135,7 +132,7 @@ function generate_font(font_name::String="옛한글", output_file::String="outpu
                 font.glyphs[Char(unicode_point)] = glyph
                 
             catch e
-                @warn "Failed to create glyph" initial vowel final exception=e
+                @warn "Failed to create glyph for combination: initial=$initial, vowel=$vowel, final=$final" exception=e
                 continue
             end
         end
