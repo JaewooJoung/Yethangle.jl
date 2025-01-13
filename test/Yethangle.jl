@@ -35,9 +35,9 @@ const FINAL_CONSONANTS = [
     'ᆵ', 'ᆶ', 'ᆷ', 'ᆸ', 'ᆹ', 'ᆺ', 'ᆻ', 'ᆼ', 'ᆽ', 'ᆾ', 'ᆿ', 'ᇀ', 'ᇁ', 'ᇂ'
 ]
 
-"""
+#=
 Calculate Unicode code point for a given Hangul syllable combination
-"""
+=#
 function calculate_unicode_point(initial::Char, vowel::Char, final::Union{Char, Nothing})::Int
     initial_index = findfirst(==(initial), INITIAL_CONSONANTS)
     vowel_index = findfirst(==(vowel), VOWELS)
