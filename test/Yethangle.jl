@@ -66,9 +66,9 @@ function calculate_unicode_point(initial::Char, vowel::Char, final::Union{Char, 
     return 0xE000 + (initial_idx * 23 * 28) + (vowel_idx * 28) + (final_idx === nothing ? 0 : final_idx)
 end
 
-"""
+#= 
 Generate all possible Hangul syllable combinations
-"""
+=#
 function generate_all_combinations(font::YethangleFont)
     combinations = Tuple{Char, Char, Union{Char, Nothing}}[]
     for initial in INITIAL_CONSONANTS
@@ -84,9 +84,9 @@ function generate_all_combinations(font::YethangleFont)
     return combinations
 end
 
-"""
+#= 
 Create a new font with the given name
-"""
+=#
 function create_font(name::String="옛한글")::YethangleFont
     metadata = FontMetadata(
         name,
@@ -105,9 +105,9 @@ function create_font(name::String="옛한글")::YethangleFont
     return font
 end
 
-"""
+#= 
 Generate font file with all syllable combinations
-"""
+=#
 function generate_font(font_name::String="옛한글", output_file::String="output/yethangle.ttf")
     try
         font = create_font(font_name)
